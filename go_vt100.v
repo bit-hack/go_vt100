@@ -131,8 +131,8 @@ module go_vga(input        i_Clk,
 
   wire [9:0] vga_x;
   wire [9:0] vga_y;
-  wire [4:0] vga_y_row;               // 2x oversampled
-  wire [6:0] vga_x_chr = vga_x[10:4]; // 2x oversampled
+  wire [4:0] vga_y_row;              // 2x oversampled
+  wire [6:0] vga_x_chr = vga_x[9:3]; // 2x oversampled
   wire [4:0] vga_y_chr;
   wire vga_blank;
   vga_t vga(i_Clk, o_VGA_HSync, o_VGA_VSync, vga_x, vga_y, vga_y_row, vga_y_chr, vga_blank);
