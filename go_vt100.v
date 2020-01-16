@@ -64,7 +64,6 @@ module vga_t(input i_clk,
              output reg [9:0] o_x,
              output reg [9:0] o_y,
              output reg [4:0] row_y,
-             output reg [4:0] chr_y,
              output reg o_blank);
 
 //  Clock Summary 
@@ -78,21 +77,14 @@ module vga_t(input i_clk,
 
   always @(posedge i_clk) begin
     if (o_x == 10'd799) begin
-      o_x <= 10'd0;
-      o_y <= (o_y == 10'd524) ? 10'd0 : (o_y + 10'd1);
+      o_x   <= 10'd0;
+      o_y   <= (o_y == 10'd524) ? 10'd0 : (o_y + 10'd1);
+      row_y <= (o_y == 10'd524) ? 5'd0 :
+                                  (row_y == 5'd19) ? 0 :
+                                                     (row_y + 5'd1);
     end else begin
       o_x <= o_x + 10'd1;
     end
-  end
-
-  always @(posedge i_clk) begin
-    row_y <= (o_y   == 10'd479) ? 0 :
-             (row_y ==  5'd19)  ? 0 : (row_y + 5'd1);
-  end
-
-  always @(posedge i_clk) begin
-    chr_y <= (o_y   == 10'd479) ? 0 :
-             (row_y ==  5'd19)  ? (chr_y + 4'd1) : chr_y;
   end
 
   always @(posedge i_clk) begin
@@ -131,25 +123,14 @@ module go_vga(input        i_Clk,
 
   wire [9:0] vga_x;
   wire [9:0] vga_y;
-  wire [4:0] vga_y_row;              // 2x oversampled
-  wire [6:0] vga_x_chr = vga_x[9:3]; // 2x oversampled
-  wire [4:0] vga_y_chr;
+  wire [4:0] vga_y_row;
   wire vga_blank;
-  vga_t vga(i_Clk, o_VGA_HSync, o_VGA_VSync, vga_x, vga_y, vga_y_row, vga_y_chr, vga_blank);
-
-  reg [10:0] ram_wr_addr;
-  reg [7:0] ram_wr_data;
-  reg ram_wr;
-  wire [10:0] ram_rd_addr = (vga_y_chr * 80) + vga_x_chr;
-  wire [7:0] ram_char;
-  vt100_sbuffer scr_ram(i_Clk, ram_wr_addr, ram_wr_data, ram_wr, ram_rd_addr, ram_char);
+  vga_t vga(i_Clk, o_VGA_HSync, o_VGA_VSync, vga_x, vga_y, vga_y_row, vga_blank);
 
   wire [2:0] rom_x = vga_x[2:0];
-  wire [3:0] rom_y = vga_y_row[4:1];  // upscale 2x
+  wire [3:0] rom_y = vga_y_row[4:1];
   wire rom_bit;
-  // note: we add 3'd1 to the rom_x here so that the rom will look-ahead
-  // giving us the correct bits when we need it.
-  vt100_rom chr_rom(i_Clk, ram_char[6:0], rom_x + 3'd1, rom_y, rom_bit);
+  vt100_rom chr_rom(i_Clk, 7'h41, rom_x, rom_y, rom_bit);
 
   wire [3:0] rgb = vga_blank ? 3'd0 : (rom_bit ? 3'b111 : 3'b000);
   assign o_VGA_R = rgb;
